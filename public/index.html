@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>สมุดเงินเดือน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EFED; --card:#FFFFFF; --soft:#F3F7F6; --ink:#16303A; --ink2:#5B747D; --ink3:#8FA3A9; --line:#D7E2DF;
+  --save:#0E7A62; --save-bg:#DDF1EA; --spend:#2F5F8A; --spend-bg:#E0EAF4; --left:#B97A10; --left-bg:#F8EBD0;
+  --bad:#B4432F; --bad-bg:#F7E1DB; --accent:#0E7A62; --on-accent:#FFFFFF; --shadow:0 1px 2px rgba(22,48,58,.06),0 6px 20px rgba(22,48,58,.06);
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0E181C; --card:#16242A; --soft:#1C2D34; --ink:#E4EFED; --ink2:#9AB0B5; --ink3:#6B8288; --line:#28393F;
+  --save:#52C9A6; --save-bg:#173A32; --spend:#86B3DE; --spend-bg:#1B2E40; --left:#E8B24F; --left-bg:#3A2D14;
+  --bad:#EE8B77; --bad-bg:#3E221C; --accent:#52C9A6; --on-accent:#0E181C; --shadow:none; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E181C; --card:#16242A; --soft:#1C2D34; --ink:#E4EFED; --ink2:#9AB0B5; --ink3:#6B8288; --line:#28393F;
+  --save:#52C9A6; --save-bg:#173A32; --spend:#86B3DE; --spend-bg:#1B2E40; --left:#E8B24F; --left-bg:#3A2D14;
+  --bad:#EE8B77; --bad-bg:#3E221C; --accent:#52C9A6; --on-accent:#0E181C; --shadow:none; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "IBM Plex Sans Thai",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:20;background:var(--bg)}
+.num{font-family:"Bai Jamjuree","IBM Plex Sans Thai",sans-serif;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto;padding:4px 16px calc(110px + env(safe-area-inset-bottom,0px))}
+
+/* top bar */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:15;background:var(--bg)}
+.top .row{max-width:640px;margin:0 auto;padding:14px 16px 10px;display:flex;align-items:center;gap:10px}
+.top h1{margin:0;font:700 1.35rem/1.2 "Bai Jamjuree",sans-serif}
+.yearbtn{margin-left:auto;display:flex;align-items:center;gap:4px}
+.yearbtn select{appearance:none;-webkit-appearance:none;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:5px 30px 5px 14px;font:600 .95rem "Bai Jamjuree",sans-serif;background-image:linear-gradient(45deg,transparent 50%,var(--ink2) 50%),linear-gradient(135deg,var(--ink2) 50%,transparent 50%);background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+.iconbtn[hidden]{display:none}
+.iconbtn{text-decoration:none;border:1px solid var(--line);background:var(--card);border-radius:99px;width:34px;height:34px;display:grid;place-items:center;color:var(--ink2)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:6px 14px;border-radius:99px;font-size:.85rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
+.toast.show{opacity:1}
+
+/* bottom nav */
+nav.bar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.bar .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);align-items:end}
+nav.bar a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 10px;text-decoration:none;color:var(--ink3);font-size:.75rem;font-weight:500}
+nav.bar a svg{width:24px;height:24px}
+nav.bar a[aria-current="page"]{color:var(--accent)}
+.fab{justify-self:center;margin-bottom:10px;width:56px;height:56px;border-radius:18px;border:0;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;box-shadow:0 6px 16px rgba(14,122,98,.35);transform:translateY(-12px)}
+.fab svg{width:28px;height:28px}
+
+/* blocks */
+.card{background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
+h2{font:600 1.1rem/1.3 "Bai Jamjuree",sans-serif;margin:26px 4px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2 small{font:400 .85rem "IBM Plex Sans Thai",sans-serif;color:var(--ink2)}
+.muted{color:var(--ink2)} .faint{color:var(--ink3)}
+.pos{color:var(--save)} .neg{color:var(--bad)}
+
+/* hero */
+.hero{background:var(--ink);color:var(--bg);border-radius:24px;padding:22px 20px 18px;margin-top:4px;position:relative;overflow:hidden}
+.hero .lbl{font-size:.9rem;opacity:.75}
+.hero .big{font:700 clamp(2.3rem,10vw,3rem)/1.1 "Bai Jamjuree",sans-serif;margin:2px 0 14px;font-variant-numeric:tabular-nums}
+.hero .big span{font-size:.45em;font-weight:500;opacity:.7;margin-left:6px}
+.hero .yr{position:absolute;right:-6px;top:-18px;font:700 6.5rem/1 "Bai Jamjuree",sans-serif;opacity:.07;letter-spacing:-.03em;pointer-events:none}
+.hero .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px solid rgba(127,160,160,.3);padding-top:12px}
+.hero .mini div{font-size:.78rem;opacity:.8}
+.hero .mini b{display:block;font:600 1.05rem "Bai Jamjuree",sans-serif;opacity:1}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{border-radius:16px;padding:12px 14px}
+.tile span{display:block;font-size:.82rem}
+.tile b{font:600 1.35rem/1.3 "Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums}
+.t-spend{background:var(--spend-bg);color:var(--spend)} .t-save{background:var(--save-bg);color:var(--save)}
+.t-left{background:var(--left-bg);color:var(--left)} .t-cash{background:var(--soft);color:var(--ink)}
+.t-bad{background:var(--bad-bg);color:var(--bad)}
+
+/* stacked bar */
+.stack{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--soft)}
+.stack i{display:block;height:100%}
+.legend{display:flex;gap:14px;font-size:.8rem;color:var(--ink2);margin:0 4px 10px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+
+/* month rows (overview) */
+.mrow{display:grid;grid-template-columns:4.2rem 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:12px 2px;border-bottom:1px solid var(--line)}
+.mrow:last-child{border-bottom:0}
+.mrow .m{font-weight:600}
+.mrow .v{font:600 1rem "Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums;text-align:right;min-width:4.5rem}
+.mrow .v small{display:block;font:400 .72rem "IBM Plex Sans Thai",sans-serif;color:var(--ink3)}
+
+/* salary list */
+.srow{display:block;width:100%;text-align:left;background:none;border:0;padding:14px 2px;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
+.srow .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.srow .m{font-weight:600}
+.srow .net{font:600 1.2rem "Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums}
+.srow .det{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;font-size:.78rem;color:var(--ink2)}
+.srow .det b{display:block;font:500 .9rem "Bai Jamjuree",sans-serif;color:var(--ink)}
+.srow .note{font-size:.82rem;color:var(--ink2);margin-top:4px}
+.addrow{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:1.5px dashed var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;color:var(--ink2)}
+.addrow b{color:var(--accent);font-weight:600}
+.tag{display:inline-block;font-size:.72rem;font-weight:500;padding:1px 8px;border-radius:99px;background:var(--left-bg);color:var(--left);margin-left:6px;vertical-align:2px}
+.tag.cash{background:var(--soft);color:var(--ink2)}
+
+/* budget */
+.months{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 -16px;padding-left:16px;padding-right:16px;scroll-snap-type:x proximity}
+.months button{flex:0 0 auto;scroll-snap-align:center;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:6px 12px;min-width:4.6rem;line-height:1.3}
+.months button b{display:block;font:500 .78rem "Bai Jamjuree",sans-serif;color:var(--ink3)}
+.months button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.months button[aria-pressed="true"] b{color:inherit;opacity:.75}
+.bhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.bhead h3{margin:0;font:700 1.6rem/1.2 "Bai Jamjuree",sans-serif}
+.incbtn{border:0;background:var(--soft);border-radius:14px;padding:8px 12px;text-align:right}
+.incbtn span{display:block;font-size:.75rem;color:var(--ink2)}
+.incbtn b{font:600 1.15rem "Bai Jamjuree",sans-serif}
+.group{margin-top:18px}
+.group h4{margin:0 0 4px;font-size:.85rem;font-weight:600;display:flex;justify-content:space-between;color:var(--ink2)}
+.line{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 2px;text-align:left}
+.line:last-child{border-bottom:0}
+.line .amt{font:500 1.05rem "Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums}
+.line.zero{color:var(--ink3)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:10px;vertical-align:2px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px 16px;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.wide{width:100%}
+.btn.text{border:0;background:none;color:var(--ink2);font-weight:500;padding:8px}
+.btn.danger{color:var(--bad)}
+.row-btns{display:flex;gap:10px;margin-top:16px}
+.row-btns .btn{flex:1}
+.empty{text-align:center;padding:28px 10px}
+.empty p{color:var(--ink2);margin:0 0 16px}
+
+/* tax */
+.kv{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--ink2)} .kv .k small{display:block;font-size:.75rem;color:var(--ink3)}
+.kv .v{font:500 1.02rem "Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums}
+.kv.total{border-top:2px solid var(--ink);border-bottom:0;margin-top:2px}
+.kv.total .k,.kv.total .v{color:var(--ink);font-weight:600}
+.verdict{border-radius:20px;padding:18px 20px;margin-bottom:14px}
+.verdict span{display:block;font-size:.9rem}
+.verdict b{font:700 2rem/1.2 "Bai Jamjuree",sans-serif}
+.v-ok{background:var(--save-bg);color:var(--save)} .v-owe{background:var(--bad-bg);color:var(--bad)}
+.brk .kv{padding:8px 0;font-size:.9rem}
+.brk .kv.off{opacity:.45}
+.fine{font-size:.82rem;color:var(--ink2);margin:10px 4px}
+details.card summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between}
+details.card summary::after{content:"+";color:var(--ink3);font-size:1.3rem;line-height:1}
+details[open].card summary::after{content:"−"}
+.pct{display:flex;align-items:center;gap:6px}
+.pct input{width:4.2rem}
+
+/* inputs */
+input[type=number],input[type=text],input[type=date],select.f{background:var(--soft);border:1.5px solid transparent;border-radius:12px;padding:10px 12px;width:100%;min-width:0}
+input:focus{border-color:var(--accent);outline:none;background:var(--card)}
+input[type=number]{text-align:right;font-family:"Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums}
+.inline-num{width:8.5rem !important}
+label.f{display:block;font-size:.85rem;color:var(--ink2);margin-top:12px}
+label.f > input,label.f > select{margin-top:4px;color:var(--ink);font-size:1rem}
+.amount-in{font:600 2rem "Bai Jamjuree",sans-serif !important;text-align:left !important;padding:8px 12px !important}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:4px 12px;font-size:.85rem}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--soft);border:0;border-radius:14px;padding:12px 14px;margin-top:8px;text-align:left}
+.toggle small{display:block;color:var(--ink2);font-size:.78rem}
+.sw{flex:0 0 auto;width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s}
+.toggle[aria-pressed="true"] .sw{background:var(--accent)}
+.toggle[aria-pressed="true"] .sw::after{transform:translateX(18px)}
+.preview{margin-top:14px;background:var(--save-bg);color:var(--save);border-radius:14px;padding:10px 14px;display:flex;justify-content:space-between;font-weight:600}
+
+/* sheet */
+dialog#sheet{border:0;padding:0;background:var(--card);color:var(--ink);width:100%;max-width:520px;max-height:90vh;border-radius:24px 24px 0 0;margin:auto auto 0;overflow:auto}
+@media (min-width:600px){ dialog#sheet{border-radius:24px;margin:auto} }
+dialog#sheet::backdrop{background:rgba(8,18,22,.5)}
+.sheet-in{padding:10px 20px calc(20px + env(safe-area-inset-bottom,0px))}
+.grip{width:40px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 12px}
+.sheet-in h3{margin:0 0 4px;font:700 1.3rem "Bai Jamjuree",sans-serif}
+.choice{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--soft);border:0;border-radius:16px;padding:16px;margin-top:10px}
+.choice .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto}
+.choice b{display:block}
+.choice small{color:var(--ink2)}
+@media (prefers-reduced-motion:no-preference){
+  dialog#sheet[open]{animation:up .22s ease-out}
+  @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="row">
+    <h1 id="pageTitle">ภาพรวม</h1>
+    <div class="yearbtn">
+      <select id="yearSel" aria-label="เลือกปี"></select>
+      <button class="iconbtn" data-act="new-year" aria-label="เพิ่มปีใหม่" title="เพิ่มปีใหม่"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      <a class="iconbtn" href="import.html" aria-label="นำเข้าจาก Excel" title="นำเข้าจาก Excel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></a>
+      <button class="iconbtn" id="signOut" data-act="sign-out" aria-label="ออกจากระบบ" title="ออกจากระบบ" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 17l-5-5 5-5M5 12h11"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="view"><p class="empty">กำลังโหลดข้อมูล…</p></main>
+
+<nav class="bar" aria-label="เมนู"><div class="in">
+  <a href="#overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>ภาพรวม</a>
+  <a href="#salary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg>เงินเดือน</a>
+  <button class="fab" data-act="quick" aria-label="เพิ่มข้อมูล"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <a href="#budget"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2" fill="currentColor"/></svg>งบรายเดือน</a>
+  <a href="#tax"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>ภาษี</a>
+</div></nav>
+
+<div class="toast" id="toast" aria-live="polite"></div>
+<dialog id="sheet"></dialog>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+const TH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const THS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const BRACKETS=[[150000,0],[300000,.05],[500000,.10],[750000,.15],[1000000,.20],[2000000,.25],[5000000,.30],[Infinity,.35]];
+const TITLES={overview:'ภาพรวม',salary:'เงินเดือน',budget:'งบรายเดือน',tax:'ภาษี'};
+const $=s=>document.querySelector(s);
+const fmt=(n,d=0)=>(Number(n)||0).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const num=v=>{const n=parseFloat(String(v).replace(/,/g,''));return isFinite(n)?n:0};
+
+let years={},cur=null,selMonth=null;
+let dirty=new Set(),saveTimer=null,saving=Promise.resolve(),toastT=null;
+
+/* ---------- Firebase ---------- */
+const fbApp=initializeApp(firebaseConfig);
+const auth=getAuth(fbApp);
+const fs=initializeFirestore(fbApp,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
+let unsub=null,me=null,loaded=false;
+
+function toast(t,ms=1600){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toastT);if(ms)toastT=setTimeout(()=>e.classList.remove('show'),ms)}
+const configMissing=()=>!firebaseConfig.apiKey||/ใส่|YOUR_/i.test(firebaseConfig.apiKey);
+
+function init(){
+  if(configMissing()){$('#view').innerHTML=`<div class="card empty"><h3>ยังไม่ได้ตั้งค่า Firebase</h3><p>เปิดไฟล์ firebase-config.js แล้วใส่ค่า config ของโปรเจกต์ตามคู่มือ</p></div>`;return}
+  getRedirectResult(auth).catch(e=>toast('เข้าสู่ระบบไม่สำเร็จ: '+e.code,4000));
+  onAuthStateChanged(auth,user=>{
+    me=user; if(unsub){unsub();unsub=null} years={}; cur=null; loaded=false;
+    $('#signOut').hidden=!user;
+    if(!user){renderLogin();return}
+    $('#view').innerHTML='<p class="empty">กำลังโหลดข้อมูล…</p>';
+    const timer=setTimeout(()=>{if(!loaded)toast('ยังเชื่อมต่อฐานข้อมูลไม่ได้ ตรวจสอบอินเทอร์เน็ต',4000)},10000);
+    unsub=onSnapshot(collection(fs,'users',user.uid,'years'),snap=>{
+      clearTimeout(timer); let changed=!loaded;
+      snap.docChanges().forEach(ch=>{
+        const id=ch.doc.id;
+        if(ch.type==='removed'){delete years[id];changed=true;return}
+        if(ch.doc.metadata.hasPendingWrites||dirty.has(id))return;
+        years[id]=structuredClone(ch.doc.data()); changed=true;
+      });
+      loaded=true; if(changed)afterLoad();
+    },err=>{clearTimeout(timer);console.error(err);toast(err.code==='permission-denied'?'ไม่มีสิทธิ์อ่านข้อมูล ตรวจสอบ Firestore rules':'โหลดข้อมูลไม่สำเร็จ',5000)});
+  });
+}
+function renderLogin(){
+  $('#pageTitle').textContent='สมุดเงินเดือน'; $('#yearSel').innerHTML='';
+  $('#view').innerHTML=`<div class="card empty" style="margin-top:30px"><h3 style="font:700 1.5rem 'Bai Jamjuree',sans-serif;margin:0 0 8px">สมุดเงินเดือน</h3><p>เข้าสู่ระบบเพื่อดูและบันทึกข้อมูลของคุณ</p><button class="btn primary wide" data-act="sign-in">เข้าสู่ระบบด้วย Google</button></div>`;
+}
+async function signIn(){
+  const p=new GoogleAuthProvider();
+  try{await signInWithPopup(auth,p)}
+  catch(e){ if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')await signInWithRedirect(auth,p); else if(e.code!=='auth/popup-closed-by-user')toast('เข้าสู่ระบบไม่สำเร็จ: '+e.code,4000) }
+}
+function afterLoad(){
+  const ids=Object.keys(years).sort();
+  if(!cur||!years[cur]){const thisY='y'+new Date().getFullYear();cur=ids.includes(thisY)?thisY:ids[ids.length-1]||null}
+  if($('#sheet').open)return;
+  const a=document.activeElement; if(a&&a.closest&&a.closest('#view input'))return;
+  render();
+}
+function touch(quiet){
+  if(!me)return;
+  dirty.add(cur); clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    const ids=[...dirty]; dirty.clear();
+    saving=saving.then(async()=>{
+      for(const k of ids){ try{ await setDoc(doc(fs,'users',me.uid,'years',k),years[k]); }catch(e){ toast('บันทึกไม่สำเร็จ ('+e.code+')',4000); console.error(e); return; } }
+      if(!quiet)toast('บันทึกแล้ว');
+    });
+  },600);
+}
+
+/* ---------- calculations ---------- */
+const Y=()=>years[cur];
+const net=r=>num(r.gross)-num(r.sso)-num(r.fund)-num(r.tax)-num(r.other);
+function totals(y){const t={gross:0,sso:0,fund:0,tax:0,other:0,net:0};(y.income||[]).forEach(r=>{t.gross+=num(r.gross);t.sso+=num(r.sso);t.fund+=num(r.fund);t.tax+=num(r.tax);t.other+=num(r.other);t.net+=net(r)});return t}
+function cardSum(b){const s={out:0,save:0,spend:0,cash:0,off:0};(b?.items||[]).forEach(i=>{const a=num(i.amount);if(i.cash)s.cash+=a;if(i.offBudget){s.off+=a;return}s.out+=a;if(i.saving)s.save+=a;else s.spend+=a});s.income=num(b?.income);s.left=s.income-s.out;return s}
+function taxCalc(y){
+  const t=totals(y),tx=y.tax||{};
+  const expense=Math.min(t.gross*.5,100000),personal=num(tx.personal);
+  const others=(tx.others||[]).reduce((a,o)=>a+num(o.amount),0);
+  const taxable=Math.max(0,t.gross-expense-personal-t.sso-t.fund-others);
+  let due=0,prev=0;const rows=[];
+  for(const [cap,rate] of BRACKETS){const part=Math.max(0,Math.min(taxable,cap)-prev);rows.push({from:prev,to:cap,rate,part,tax:part*rate});due+=part*rate;prev=cap}
+  return {gross:t.gross,expense,personal,sso:t.sso,fund:t.fund,others,taxable,due,paid:t.tax,diff:t.tax-due,rows};
+}
+function stackBar(s){
+  const base=Math.max(s.income,s.out)||1, w=v=>Math.max(0,v)/base*100;
+  return `<div class="stack" aria-hidden="true"><i style="width:${w(s.spend)}%;background:var(--spend)"></i><i style="width:${w(s.save)}%;background:var(--save)"></i><i style="width:${w(s.left)}%;background:var(--left)"></i></div>`;
+}
+function latestMonth(y){for(let m=12;m>=1;m--)if(y.budgets?.[m])return m;return 1}
+
+/* ---------- render ---------- */
+function route(){const r=(location.hash||'#overview').slice(1);return TITLES[r]?r:'overview'}
+function render(){
+  const r=route();
+  $('#pageTitle').textContent=TITLES[r];
+  document.querySelectorAll('nav.bar a').forEach(a=>a.getAttribute('href')==='#'+r?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
+  const ids=Object.keys(years).sort();
+  $('#yearSel').innerHTML=ids.map(k=>`<option value="${k}" ${k===cur?'selected':''}>${esc(years[k].year)}</option>`).join('');
+  const v=$('#view');
+  if(!me){renderLogin();return}
+  if(!cur){v.innerHTML=`<div class="card empty"><h3>ยังไม่มีข้อมูล</h3><p>นำเข้าข้อมูลจากไฟล์ Excel หรือเริ่มกรอกใหม่ได้เลย</p><a class="btn primary wide" href="import.html" style="display:block;text-decoration:none">นำเข้าจาก Excel</a><div style="height:8px"></div><button class="btn wide" data-act="new-year">เริ่มสมุดปีใหม่</button></div>`;return}
+  ({overview:vOverview,salary:vSalary,budget:vBudget,tax:vTax})[r](v);
+}
+
+function vOverview(v){
+  const y=Y(),t=totals(y),tc=taxCalc(y);let sv=0;
+  for(let m=1;m<=12;m++)sv+=cardSum(y.budgets?.[m]).save;
+  const rows=TH.map((n,i)=>{const b=y.budgets?.[i+1];const s=cardSum(b);
+    return `<button class="mrow" data-act="goto-month" data-m="${i+1}"><span class="m">${THS[i]}</span>${b?stackBar(s):'<span class="faint" style="font-size:.85rem">ยังไม่มีงบ</span>'}<span class="v ${s.left<0?'neg':''}">${b?fmt(s.left):'–'}${b?'<small>คงเหลือ</small>':''}</span></button>`}).join('');
+  const r=y.rule||{base:0,parts:[]},tot=r.parts.reduce((a,p)=>a+num(p.pct),0);
+  v.innerHTML=`
+  <section class="hero">
+    <div class="yr" aria-hidden="true">${esc(y.year)}</div>
+    <div class="lbl">เงินที่ได้จริงทั้งปี ${esc(y.year)}</div>
+    <div class="big">${fmt(t.net)}<span>บาท</span></div>
+    <div class="mini">
+      <div>เงินเดือนรวม<b>${fmt(t.gross)}</b></div>
+      <div>เก็บออม<b>${fmt(sv)}</b></div>
+      <div>${tc.diff>=0?'ภาษีได้คืน':'ภาษีจ่ายเพิ่ม'}<b>${fmt(Math.abs(tc.diff))}</b></div>
+    </div>
+  </section>
+  <h2>เงินแต่ละเดือน <small>แตะเพื่อดูรายละเอียด</small></h2>
+  <div class="legend"><span><i style="background:var(--spend)"></i>ใช้จ่าย</span><span><i style="background:var(--save)"></i>เก็บออม</span><span><i style="background:var(--left)"></i>คงเหลือ</span></div>
+  <div class="card" style="padding:4px 16px">${rows}</div>
+  <details class="card"><summary>กฎแบ่งเงิน</summary>
+    <label class="f">เงินเดือนฐาน<input type="number" inputmode="decimal" value="${num(r.base)}" data-bind="rule.base" data-num data-refresh="rule"></label>
+    <div style="margin-top:8px">${r.parts.map((p,i)=>`<div class="kv"><span class="k">${esc(p.name)}</span><span class="pct"><input type="number" inputmode="decimal" value="${p.pct}" data-bind="rule.parts.${i}.pct" data-num data-refresh="rule" aria-label="${esc(p.name)} เปอร์เซ็นต์">%<span class="v" data-amt="${i}" style="min-width:5.5rem;text-align:right">${fmt(r.base*p.pct/100)}</span></span></div>`).join('')}</div>
+    <p class="fine" id="ruleNote">${ruleNote(tot)}</p>
+  </details>`;
+}
+const ruleNote=t=>t===100?'รวมกันได้ 100% พอดี':`ตอนนี้รวมกันได้ ${t}% ลองปรับให้รวมเป็น 100%`;
+
+function vSalary(v){
+  const y=Y(),t=totals(y);
+  let list='';
+  for(let m=1;m<=12;m++){
+    const rows=(y.income||[]).filter(r=>r.month===m).sort((a,b)=>(a.label?1:0)-(b.label?1:0));
+    if(!rows.length){list+=`<button class="addrow" data-act="add-row" data-m="${m}"><span>${TH[m-1]}</span><b>+ เพิ่ม</b></button>`;continue}
+    list+=rows.map(r=>`<button class="srow" data-act="edit-row" data-id="${r.id}">
+      <div class="top"><span class="m">${TH[m-1]}${r.label?`<span class="tag">${esc(r.label)}</span>`:''}</span><span class="net">${fmt(net(r))}</span></div>
+      <div class="det"><div>เงินเดือน<b>${fmt(r.gross)}</b></div><div>ประกันสังคม<b>${fmt(r.sso)}</b></div><div>กองทุน<b>${fmt(r.fund)}</b></div><div>ภาษี<b>${fmt(r.tax)}</b></div></div>
+      ${num(r.other)?`<div class="note">หัก${esc(r.otherName||'อื่นๆ')} ${fmt(r.other)}</div>`:''}
+      ${r.note?`<div class="note">${esc(r.note)}</div>`:''}</button>`).join('');
+  }
+  v.innerHTML=`
+  <div class="tiles" style="margin-top:4px">
+    <div class="tile t-cash"><span>เงินเดือนรวม</span><b>${fmt(t.gross)}</b></div>
+    <div class="tile t-save"><span>ได้จริง</span><b>${fmt(t.net)}</b></div>
+    <div class="tile t-spend"><span>ประกันสังคม + กองทุน${t.other?' + อื่นๆ':''}</span><b>${fmt(t.sso+t.fund+t.other)}</b></div>
+    <div class="tile t-left"><span>ภาษีที่ถูกหัก</span><b>${fmt(t.tax)}</b></div>
+  </div>
+  <h2>รายเดือน <small>แตะเพื่อแก้ไข</small></h2>
+  <div class="card" style="padding:4px 16px">${list}</div>
+  <button class="btn wide" data-act="add-row">+ เพิ่มเงินพิเศษ เช่น โบนัส</button>`;
+}
+
+function vBudget(v){
+  const y=Y(); y.budgets=y.budgets||{};
+  if(!selMonth)selMonth=latestMonth(y);
+  const m=selMonth,b=y.budgets[m];
+  const strip=TH.map((n,i)=>{const bb=y.budgets[i+1];return `<button aria-pressed="${i+1===m}" data-act="pick-month" data-m="${i+1}">${THS[i]}<b>${bb?fmt(cardSum(bb).left):'–'}</b></button>`}).join('');
+  let body;
+  if(!b){
+    const prev=y.budgets[m-1];
+    body=`<div class="card empty"><h3 style="margin:0 0 6px">${TH[m-1]}</h3><p>ยังไม่มีงบของเดือนนี้</p>
+      ${prev?`<button class="btn primary wide" data-act="make-card" data-copy="1">ใช้รายการเดียวกับ${TH[m-2]}</button><div style="height:8px"></div>`:''}
+      <button class="btn wide" data-act="make-card" data-copy="0">เริ่มงบว่าง</button></div>`;
+  }else{
+    const s=cardSum(b);
+    const line=(it,i)=>`<button class="line ${num(it.amount)?'':'zero'}" data-act="edit-item" data-i="${i}"><span><i class="dot" style="background:${it.offBudget?'var(--ink3)':it.saving?'var(--save)':'var(--spend)'}"></i>${esc(it.name||'ไม่มีชื่อ')}${it.cash?'<span class="tag cash">เงินสด</span>':''}</span><span class="amt">${fmt(it.amount)}</span></button>`;
+    const all=b.items.map((it,i)=>[it,i]), sav=all.filter(([it])=>it.saving&&!it.offBudget), sp=all.filter(([it])=>!it.saving&&!it.offBudget), off=all.filter(([it])=>it.offBudget);
+    body=`<div class="card">
+      <div class="bhead"><div><h3>${TH[m-1]}</h3><div class="muted" style="font-size:.85rem">${b.date?'เงินเข้า '+thDate(b.date):''}</div></div>
+        <button class="incbtn" data-act="edit-income"><span>เงินเดือนที่ได้รับ ✎</span><b>${fmt(b.income)}</b></button></div>
+      ${stackBar(s)}
+      <div class="tiles" style="margin-top:14px">
+        <div class="tile ${s.left<0?'t-bad':'t-left'}"><span>คงเหลือ</span><b>${fmt(s.left)}</b></div>
+        <div class="tile t-cash"><span>ต้องกดเงินสด</span><b>${fmt(s.cash)}</b></div>
+        <div class="tile t-spend"><span>ใช้จ่าย</span><b>${fmt(s.spend)}</b></div>
+        <div class="tile t-save"><span>เก็บออม</span><b>${fmt(s.save)}</b></div>
+      </div>
+      ${sp.length?`<div class="group"><h4><span>ใช้จ่าย</span><span>${fmt(s.spend)}</span></h4>${sp.map(([it,i])=>line(it,i)).join('')}</div>`:''}
+      ${sav.length?`<div class="group"><h4><span>เก็บออม</span><span>${fmt(s.save)}</span></h4>${sav.map(([it,i])=>line(it,i)).join('')}</div>`:''}
+      ${off.length?`<div class="group"><h4><span>ไม่นับในงบเดือนนี้</span><span>${fmt(s.off)}</span></h4>${off.map(([it,i])=>line(it,i)).join('')}<p class="faint" style="font-size:.78rem;margin:6px 0 0">เช่น จ่ายจากเงินโบนัสหรือเงินเก็บ ไม่หักจากเงินเดือนเดือนนี้</p></div>`:''}
+      <div class="row-btns"><button class="btn primary" data-act="add-item">+ เพิ่มรายการ</button></div>
+    </div>
+    <button class="btn text danger wide" data-act="del-card">ลบงบเดือน${TH[m-1]}</button>`;
+  }
+  v.innerHTML=`<div class="months" id="months">${strip}</div>${body}`;
+  const on=v.querySelector('.months [aria-pressed="true"]'); if(on)on.scrollIntoView({inline:'center',block:'nearest'});
+}
+function thDate(d){const [yy,mm,dd]=d.split('-').map(Number);return `${dd} ${THS[mm-1]} ${yy+543}`}
+
+function vTax(v){
+  const y=Y(); y.tax=y.tax||{personal:60000,others:[]}; v.innerHTML=taxHTML(y);
+}
+function taxHTML(y){
+  const c=taxCalc(y),ok=c.diff>=0;
+  return `
+  <div class="verdict ${ok?'v-ok':'v-owe'}" id="verdict"><span>${ok?'น่าจะได้ภาษีคืนประมาณ':'น่าจะต้องจ่ายภาษีเพิ่มประมาณ'}</span><b>${fmt(Math.abs(c.diff),2)}</b> บาท</div>
+  <div class="card">
+    <div class="kv"><span class="k">เงินได้ทั้งปี<small>จากหน้าเงินเดือน</small></span><span class="v">${fmt(c.gross,2)}</span></div>
+    <div class="kv"><span class="k">หักค่าใช้จ่าย<small>50% ไม่เกิน 100,000</small></span><span class="v">−${fmt(c.expense,2)}</span></div>
+    <div class="kv"><span class="k">ลดหย่อนส่วนตัว</span><input class="inline-num" type="number" inputmode="decimal" value="${num(y.tax.personal)}" data-bind="tax.personal" data-num data-refresh="tax" aria-label="ลดหย่อนส่วนตัว"></div>
+    <div class="kv"><span class="k">ประกันสังคม</span><span class="v">−${fmt(c.sso,2)}</span></div>
+    <div class="kv"><span class="k">กองทุน</span><span class="v">−${fmt(c.fund,2)}</span></div>
+    ${y.tax.others.map((o,i)=>`<div class="kv"><input type="text" value="${esc(o.name)}" placeholder="ชื่อค่าลดหย่อน" data-bind="tax.others.${i}.name" aria-label="ชื่อค่าลดหย่อน" style="flex:1"><input class="inline-num" type="number" inputmode="decimal" value="${num(o.amount)}" data-bind="tax.others.${i}.amount" data-num data-refresh="tax" aria-label="จำนวน"><button class="btn text" data-act="del-ded" data-i="${i}" aria-label="ลบ">✕</button></div>`).join('')}
+    <button class="btn text" data-act="add-ded" style="color:var(--accent);padding-left:0">+ เพิ่มค่าลดหย่อน เช่น ประกันชีวิต</button>
+    <div id="taxSum">${taxSum(c)}</div>
+  </div>
+  <h2>อัตราภาษีขั้นบันได</h2>
+  <div class="card brk" id="brk">${brk(c)}</div>
+  <p class="fine">ใช้เพื่อประมาณการเท่านั้น ยอดจริงขึ้นกับสิทธิลดหย่อนที่ยื่นกับกรมสรรพากร</p>`;
+}
+const taxSum=c=>`<div class="kv total"><span class="k">เงินได้สุทธิ</span><span class="v">${fmt(c.taxable,2)}</span></div><div class="kv"><span class="k">ภาษีทั้งปี</span><span class="v">${fmt(c.due,2)}</span></div><div class="kv"><span class="k">ถูกหักไปแล้ว</span><span class="v">${fmt(c.paid,2)}</span></div>`;
+const brk=c=>c.rows.map(r=>`<div class="kv ${r.part>0?'':'off'}"><span class="k">${fmt(r.from)} – ${r.to===Infinity?'ขึ้นไป':fmt(r.to)}<small>อัตรา ${r.rate*100}%</small></span><span class="v">${fmt(r.tax,2)}</span></div>`).join('');
+
+/* ---------- live refresh ---------- */
+const REFRESH={
+  rule(){const r=Y().rule;r.parts.forEach((p,i)=>{const e=document.querySelector(`[data-amt="${i}"]`);if(e)e.textContent=fmt(r.base*p.pct/100)});$('#ruleNote').textContent=ruleNote(r.parts.reduce((a,p)=>a+num(p.pct),0))},
+  tax(){const c=taxCalc(Y()),ok=c.diff>=0,vd=$('#verdict');vd.className='verdict '+(ok?'v-ok':'v-owe');vd.innerHTML=`<span>${ok?'น่าจะได้ภาษีคืนประมาณ':'น่าจะต้องจ่ายภาษีเพิ่มประมาณ'}</span><b>${fmt(Math.abs(c.diff),2)}</b> บาท`;$('#taxSum').innerHTML=taxSum(c);$('#brk').innerHTML=brk(c)}
+};
+function setPath(o,path,val){const k=path.split('.');for(let i=0;i<k.length-1;i++)o=o[k[i]];o[k[k.length-1]]=val}
+$('#view').addEventListener('input',e=>{const el=e.target;if(!el.dataset.bind)return;setPath(Y(),el.dataset.bind,'num' in el.dataset?num(el.value):el.value);touch(true);const r=el.dataset.refresh;if(r)REFRESH[r]()});
+
+/* ---------- sheets ---------- */
+const sheet=$('#sheet');
+sheet.addEventListener('click',e=>{if(e.target===sheet)sheet.close()});
+sheet.addEventListener('close',()=>render());
+function openSheet(html){sheet.innerHTML=`<div class="sheet-in"><div class="grip"></div>${html}</div>`;sheet.showModal();return sheet}
+
+function quickSheet(){
+  const y=Y(); const nextM=nextSalaryMonth(y);
+  openSheet(`<h3>เพิ่มข้อมูล</h3><p class="muted" style="margin:0">เลือกสิ่งที่ต้องการบันทึก</p>
+    <button class="choice" data-act="q-salary"><span class="ic t-save"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span><span><b>เงินเดือนเข้า</b><small>${nextM?'เดือน'+TH[nextM-1]+' ใช้ตัวเลขเดือนก่อนเป็นค่าเริ่มต้น':'เพิ่มเงินพิเศษ เช่น โบนัส'}</small></span></button>
+    <button class="choice" data-act="q-item"><span class="ic t-spend"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/></svg></span><span><b>รายการในงบ</b><small>ค่าใช้จ่ายหรือเงินออม ของเดือน${TH[(selMonth||latestMonth(y))-1]}</small></span></button>
+    <button class="choice" data-act="q-month"><span class="ic t-left"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><span><b>งบเดือนใหม่</b><small>คัดลอกรายการจากเดือนล่าสุด</small></span></button>`);
+}
+function nextSalaryMonth(y){for(let m=1;m<=12;m++)if(!(y.income||[]).some(r=>r.month===m&&!r.label))return m;return null}
+
+function rowSheet(id,month){
+  const y=Y(); let r=id?y.income.find(x=>x.id===id):null; const isNew=!r;
+  if(isNew){
+    const regular=(y.income||[]).filter(x=>!x.label).sort((a,b)=>b.month-a.month)[0];
+    const m=month||nextSalaryMonth(y);
+    r=m&&regular?{month:m,label:'',gross:regular.gross,sso:regular.sso,fund:regular.fund,tax:regular.tax,note:''}
+               :{month:m||(new Date().getMonth()+1),label:m?'':'โบนัส',gross:'',sso:0,fund:0,tax:0,note:''};
+  }
+  const d=openSheet(`<h3>${isNew?'เพิ่มเงินเดือน':'แก้ไขเงินเดือน'}</h3>
+    ${isNew&&r.gross!==''?'<p class="muted" style="margin:0;font-size:.85rem">ใส่ตัวเลขจากเดือนก่อนไว้ให้แล้ว แก้เฉพาะที่เปลี่ยน</p>':''}
+    <div class="grid2">
+      <label class="f">เดือน<select class="f" name="month">${TH.map((n,i)=>`<option value="${i+1}" ${r.month===i+1?'selected':''}>${n}</option>`).join('')}</select></label>
+      <label class="f">ประเภท<input type="text" name="label" value="${esc(r.label)}" placeholder="ปกติ"></label>
+    </div>
+    <label class="f">เงินเดือนที่ได้<input type="number" inputmode="decimal" name="gross" class="amount-in" value="${r.gross}"></label>
+    <div class="chips"><button class="chip" data-set-label="">ปกติ</button><button class="chip" data-set-label="โบนัส">โบนัส</button><button class="chip" data-set-label="ขึ้นเงินเดือน">ขึ้นเงินเดือน</button></div>
+    <div class="grid2">
+      <label class="f">ประกันสังคม<input type="number" inputmode="decimal" name="sso" value="${r.sso}"></label>
+      <label class="f">กองทุน<input type="number" inputmode="decimal" name="fund" value="${r.fund}"></label>
+      <label class="f">ภาษี<input type="number" inputmode="decimal" name="tax" value="${r.tax}"></label>
+      <label class="f">หัก${esc(r.otherName||'อื่นๆ เช่น กยศ.')}<input type="number" inputmode="decimal" name="other" value="${r.other??0}"></label>
+    </div>
+    <label class="f">หมายเหตุ<input type="text" name="note" value="${esc(r.note)}" placeholder="เช่น ลาป่วย 1 วัน"></label>
+    <div class="preview"><span>เงินที่ได้จริง</span><span class="num" id="pv"></span></div>
+    <div class="row-btns">${isNew?'':'<button class="btn danger" data-sheet="del">ลบ</button>'}<button class="btn primary" data-sheet="save" style="flex:2">บันทึก</button></div>`);
+  const g=n=>d.querySelector(`[name=${n}]`);
+  const pv=()=>{$('#pv').textContent=fmt(num(g('gross').value)-num(g('sso').value)-num(g('fund').value)-num(g('tax').value)-num(g('other').value))};
+  pv(); d.oninput=pv;
+  d.querySelectorAll('[data-set-label]').forEach(c=>c.onclick=()=>{g('label').value=c.dataset.setLabel});
+  d.querySelector('[data-sheet=save]').onclick=()=>{
+    const nr={month:+g('month').value,label:g('label').value.trim(),gross:num(g('gross').value),sso:num(g('sso').value),fund:num(g('fund').value),tax:num(g('tax').value),other:num(g('other').value),otherName:r.otherName||(num(g('other').value)?'อื่นๆ':''),note:g('note').value.trim()};
+    if(isNew)y.income.push({id:uid(),...nr});else Object.assign(r,nr);
+    touch();d.close();
+  };
+  const del=d.querySelector('[data-sheet=del]');
+  if(del)del.onclick=()=>{if(confirm('ลบรายการนี้ใช่ไหม')){y.income=y.income.filter(x=>x.id!==id);touch();d.close()}};
+  if(isNew&&r.gross==='')setTimeout(()=>g('gross').focus(),50);
+}
+
+function itemSheet(i){
+  const y=Y(),b=y.budgets[selMonth]; const isNew=i==null;
+  const it=isNew?{name:'',amount:'',saving:false,cash:false}:{...b.items[i]};
+  const have=new Set(b.items.map(x=>x.name));
+  const sugg=new Map();
+  Object.values(y.budgets).forEach(bb=>bb.items.forEach(x=>{if(x.name&&!have.has(x.name)&&!sugg.has(x.name))sugg.set(x.name,x)}));
+  const d=openSheet(`<h3>${isNew?'เพิ่มรายการ':'แก้ไขรายการ'}</h3><p class="muted" style="margin:0;font-size:.85rem">งบเดือน${TH[selMonth-1]}</p>
+    <label class="f">ชื่อรายการ<input type="text" name="name" value="${esc(it.name)}" placeholder="เช่น ค่าไฟ"></label>
+    ${isNew&&sugg.size?`<div class="chips">${[...sugg.keys()].slice(0,8).map(n=>`<button class="chip" data-sugg="${esc(n)}">${esc(n)}</button>`).join('')}</div>`:''}
+    <label class="f">จำนวนเงิน<input type="number" inputmode="decimal" name="amount" class="amount-in" value="${it.amount}" placeholder="0"></label>
+    <button class="toggle" data-tg="saving" aria-pressed="${!!it.saving}"><span><b>เป็นเงินออม</b><small>นับรวมในยอดเก็บออม</small></span><span class="sw"></span></button>
+    <button class="toggle" data-tg="cash" aria-pressed="${!!it.cash}"><span><b>ใช้เป็นเงินสด</b><small>รวมในยอดที่ต้องกดเงินสด</small></span><span class="sw"></span></button>
+    <button class="toggle" data-tg="offBudget" aria-pressed="${!!it.offBudget}"><span><b>ไม่นับในงบเดือนนี้</b><small>จ่ายจากเงินก้อนอื่น ไม่หักจากเงินเดือน</small></span><span class="sw"></span></button>
+    <div class="row-btns">${isNew?'':'<button class="btn danger" data-sheet="del">ลบ</button>'}<button class="btn primary" data-sheet="save" style="flex:2">บันทึก</button></div>`);
+  const g=n=>d.querySelector(`[name=${n}]`);
+  d.querySelectorAll('[data-tg]').forEach(t=>t.onclick=()=>{it[t.dataset.tg]=!it[t.dataset.tg];t.setAttribute('aria-pressed',it[t.dataset.tg])});
+  d.querySelectorAll('[data-sugg]').forEach(c=>c.onclick=()=>{const s=sugg.get(c.dataset.sugg);g('name').value=s.name;it.saving=!!s.saving;it.cash=!!s.cash;
+    d.querySelectorAll('[data-tg]').forEach(t=>t.setAttribute('aria-pressed',it[t.dataset.tg]));g('amount').value=s.amount||'';g('amount').focus();g('amount').select()});
+  d.querySelector('[data-sheet=save]').onclick=()=>{
+    const nv={name:g('name').value.trim()||'ไม่มีชื่อ',amount:num(g('amount').value),saving:!!it.saving,cash:!!it.cash,offBudget:!!it.offBudget};
+    if(isNew)b.items.push(nv);else b.items[i]=nv; touch(); d.close();
+  };
+  const del=d.querySelector('[data-sheet=del]');
+  if(del)del.onclick=()=>{if(confirm('ลบรายการนี้ใช่ไหม')){b.items.splice(i,1);touch();d.close()}};
+  setTimeout(()=>(isNew?g('name'):g('amount')).focus(),50);
+}
+
+function incomeSheet(){
+  const y=Y(),b=y.budgets[selMonth];
+  const pm=selMonth===1?1:selMonth-1;
+  const opts=(y.income||[]).filter(r=>r.month===pm||r.month===selMonth).map(r=>({t:`${TH[r.month-1]}${r.label?' ('+r.label+')':''}`,v:net(r)}));
+  const d=openSheet(`<h3>เงินเดือนที่ได้รับ</h3><p class="muted" style="margin:0;font-size:.85rem">สำหรับงบเดือน${TH[selMonth-1]}</p>
+    <label class="f">จำนวนเงิน<input type="number" inputmode="decimal" name="income" class="amount-in" value="${num(b.income)}"></label>
+    ${opts.length?`<div class="chips">${opts.map(o=>`<button class="chip" data-v="${o.v}">ใช้ของ${esc(o.t)} ${fmt(o.v)}</button>`).join('')}</div>`:''}
+    <label class="f">วันที่เงินเข้า<input type="date" name="date" value="${esc(b.date||'')}"></label>
+    <div class="row-btns"><button class="btn primary" data-sheet="save">บันทึก</button></div>`);
+  d.querySelectorAll('[data-v]').forEach(c=>c.onclick=()=>{d.querySelector('[name=income]').value=c.dataset.v});
+  d.querySelector('[data-sheet=save]').onclick=()=>{b.income=num(d.querySelector('[name=income]').value);b.date=d.querySelector('[name=date]').value;touch();d.close()};
+}
+
+function makeCard(m,copy){
+  const y=Y(),prevM=[...Array(m-1).keys()].map(k=>m-1-k).find(k=>y.budgets[k]); const prev=prevM?y.budgets[prevM]:null;
+  const pad=n=>String(n).padStart(2,'0'),yr=m===1?+y.year-1:+y.year,pm=m===1?12:m-1;
+  const sal=(y.income||[]).filter(r=>r.month===pm&&!r.label)[0]||(y.income||[]).filter(r=>r.month===m&&!r.label)[0];
+  y.budgets[m]={date:`${yr}-${pad(pm)}-25`,income:sal?net(sal):num(prev?.income),items:copy&&prev?prev.items.filter(i=>!i.offBudget).map(i=>({...i})):[]};
+  selMonth=m; touch(); render();
+}
+function newYear(){
+  const ids=Object.keys(years).sort(),last=ids.length?years[ids[ids.length-1]]:null;
+  const yr=last?+last.year+1:new Date().getFullYear(),k='y'+yr;
+  if(!years[k])years[k]={year:yr,income:[],budgets:{},
+    tax:{personal:last?.tax?.personal??60000,others:(last?.tax?.others||[]).map(o=>({name:o.name,amount:0}))},
+    rule:last?.rule?structuredClone(last.rule):{base:0,parts:[{name:'ความจำเป็น',pct:50},{name:'ออม',pct:20},{name:'ความต้องการ',pct:30}]}};
+  cur=k;selMonth=null;touch();render();
+}
+
+/* ---------- actions ---------- */
+const ACT={
+  'goto-month':el=>{selMonth=+el.dataset.m;location.hash='budget'},
+  'pick-month':el=>{selMonth=+el.dataset.m;render()},
+  'edit-row':el=>rowSheet(el.dataset.id),
+  'add-row':el=>rowSheet(null,el.dataset.m?+el.dataset.m:null),
+  'edit-item':el=>itemSheet(+el.dataset.i),
+  'add-item':()=>itemSheet(null),
+  'edit-income':()=>incomeSheet(),
+  'make-card':el=>makeCard(selMonth,el.dataset.copy==='1'),
+  'del-card':()=>{if(confirm(`ลบงบเดือน${TH[selMonth-1]}ทั้งหมดใช่ไหม`)){delete Y().budgets[selMonth];touch();render()}},
+  'add-ded':()=>{Y().tax.others.push({name:'',amount:0});touch(true);render()},
+  'del-ded':el=>{Y().tax.others.splice(+el.dataset.i,1);touch();render()},
+  'new-year':()=>{if(!me)return;const ids=Object.keys(years).sort();const nx=ids.length?+years[ids[ids.length-1]].year+1:new Date().getFullYear();if(confirm(`เริ่มสมุดปี ${nx} ใช่ไหม`))newYear()},
+  'quick':()=>{if(!me)return;if(!cur){newYear();return}quickSheet()},
+  'sign-in':()=>signIn(),
+  'sign-out':()=>{if(confirm('ออกจากระบบใช่ไหม'))signOut(auth)},
+  'q-salary':()=>{sheet.close();setTimeout(()=>{location.hash='salary';render();rowSheet(null)},0)},
+  'q-item':()=>{sheet.close();const y=Y();selMonth=selMonth||latestMonth(y);setTimeout(()=>{location.hash='budget';render();if(y.budgets[selMonth])itemSheet(null)},0)},
+  'q-month':()=>{sheet.close();const y=Y();let m=latestMonth(y);if(y.budgets[m])m=Math.min(12,m+1);selMonth=m;location.hash='budget';if(!y.budgets[m])makeCard(m,true);else render()}
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(el&&ACT[el.dataset.act]){e.preventDefault();ACT[el.dataset.act](el)}});
+$('#yearSel').onchange=e=>{cur=e.target.value;selMonth=null;render()};
+addEventListener('hashchange',()=>{if(!sheet.open)render()});
+init();
+</script>
+</body>
+</html>

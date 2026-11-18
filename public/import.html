@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>นำเข้าจาก Excel · สมุดเงินเดือน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#E9EFED;--card:#FFF;--soft:#F3F7F6;--ink:#16303A;--ink2:#5B747D;--ink3:#8FA3A9;--line:#D7E2DF;--accent:#0E7A62;--on-accent:#FFF;--ok-bg:#DDF1EA;--warn:#B97A10;--warn-bg:#F8EBD0;--bad:#B4432F;--bad-bg:#F7E1DB;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0E181C;--card:#16242A;--soft:#1C2D34;--ink:#E4EFED;--ink2:#9AB0B5;--ink3:#6B8288;--line:#28393F;--accent:#52C9A6;--on-accent:#0E181C;--ok-bg:#173A32;--warn:#E8B24F;--warn-bg:#3A2D14;--bad:#EE8B77;--bad-bg:#3E221C;color-scheme:dark}}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "IBM Plex Sans Thai",system-ui,sans-serif}
+.wrap{max-width:600px;margin:0 auto;padding:16px 16px 48px}
+h1{font:700 1.4rem/1.3 "Bai Jamjuree",sans-serif;margin:8px 0 4px}
+.muted{color:var(--ink2)}
+a{color:var(--accent)}
+.card{background:var(--card);border-radius:20px;padding:18px;margin-top:14px}
+.btn{display:inline-block;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:11px 16px;font:600 1rem "IBM Plex Sans Thai",sans-serif;color:var(--ink);cursor:pointer;text-decoration:none;text-align:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.drop{display:block;border:2px dashed var(--line);border-radius:18px;padding:28px 16px;text-align:center;cursor:pointer;background:var(--soft)}
+.drop input{display:none}
+.drop b{display:block;font-size:1.05rem}
+.sheetrow{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
+.sheetrow:last-child{border-bottom:0}
+.sheetrow input{width:22px;height:22px;margin-top:3px;accent-color:var(--accent);flex:0 0 auto}
+.sheetrow .t{font-weight:600}
+.sheetrow .d{font-size:.85rem;color:var(--ink2)}
+.num{font-family:"Bai Jamjuree",sans-serif;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:.75rem;border-radius:99px;padding:1px 9px;margin:4px 6px 0 0}
+.p-ok{background:var(--ok-bg);color:var(--accent)} .p-info{background:var(--soft);color:var(--ink2)} .p-warn{background:var(--warn-bg);color:var(--warn)} .p-bad{background:var(--bad-bg);color:var(--bad)}
+.msg{margin-top:14px;padding:12px 14px;border-radius:14px}
+.msg.ok{background:var(--ok-bg);color:var(--accent)} .msg.bad{background:var(--bad-bg);color:var(--bad)} .msg.warn{background:var(--warn-bg);color:var(--warn)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a href="index.html">← กลับไปสมุดเงินเดือน</a>
+  <h1>นำเข้าข้อมูลจาก Excel</h1>
+  <p class="muted" style="margin:0">อ่านทุกชีตปีในไฟล์ (2023–2026) แล้วบันทึกลง Firebase ของบัญชีคุณ</p>
+  <div id="app"><p class="muted">กำลังโหลด…</p></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+import { parseWorkbook } from "./sheet-parser.js";
+
+const app$ = document.getElementById('app');
+const fmt = n => (Number(n) || 0).toLocaleString('th-TH', { maximumFractionDigits: 0 });
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+if (!firebaseConfig.apiKey || /ใส่|YOUR_/.test(firebaseConfig.apiKey)) {
+  app$.innerHTML = `<div class="msg bad">ยังไม่ได้ใส่ค่า config ในไฟล์ firebase-config.js</div>`;
+  throw new Error('missing config');
+}
+const fb = initializeApp(firebaseConfig);
+const auth = getAuth(fb), db = getFirestore(fb);
+let user = null, parsed = [];
+
+onAuthStateChanged(auth, u => { user = u; u ? showPicker() : showLogin(); });
+
+function showLogin() {
+  app$.innerHTML = `<div class="card"><p style="margin-top:0">เข้าสู่ระบบก่อน เพื่อให้ข้อมูลไปอยู่ในบัญชีของคุณ</p><button class="btn primary wide" id="login">เข้าสู่ระบบด้วย Google</button></div>`;
+  document.getElementById('login').onclick = async () => {
+    const p = new GoogleAuthProvider();
+    try { await signInWithPopup(auth, p); } catch (e) { if (e.code === 'auth/popup-blocked') signInWithRedirect(auth, p); }
+  };
+}
+
+function showPicker() {
+  app$.innerHTML = `<div class="card">
+    <p class="muted" style="margin-top:0">บัญชี: ${esc(user.email)}</p>
+    <label class="drop"><input type="file" id="file" accept=".xlsx,.xlsm,.xls"><b>เลือกไฟล์ Excel</b><span class="muted">เช่น Tax_Year_2026.xlsx</span></label>
+  </div><div id="result"></div>`;
+  document.getElementById('file').onchange = e => { const f = e.target.files[0]; if (f) readFile(f); };
+}
+
+async function readFile(file) {
+  const res = document.getElementById('result');
+  res.innerHTML = `<p class="muted">กำลังอ่าน ${esc(file.name)}…</p>`;
+  try {
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    parsed = parseWorkbook(XLSX, wb);
+  } catch (e) { res.innerHTML = `<div class="msg bad">อ่านไฟล์ไม่ได้: ${esc(e.message)}</div>`; return; }
+
+  // ตรวจว่าปีไหนมีข้อมูลใน Firebase อยู่แล้ว
+  const years = [...new Set(parsed.filter(p => p.ok).map(p => p.year))];
+  const exists = {};
+  await Promise.all(years.map(async y => { try { exists[y] = (await getDoc(doc(db, 'users', user.uid, 'years', 'y' + y))).exists(); } catch { exists[y] = false; } }));
+
+  // ชีตที่ปีซ้ำกัน (เช่น 2024 กับ คำนวณภาษี 2024): เลือกชีตที่ชื่อเป็นปีพอดีเป็นหลัก
+  const primary = {};
+  parsed.filter(p => p.ok).forEach(p => {
+    const cur = primary[p.year], isYearName = p.sheet.trim() === String(p.year);
+    if (!cur || (isYearName && cur.sheet.trim() !== String(p.year))) primary[p.year] = p;
+  });
+  parsed.forEach(p => {
+    if (!p.ok) return;
+    const d = p.data, b = Object.values(d.budgets);
+    p.net = d.income.reduce((a, r) => a + r.gross - r.sso - r.fund - r.tax - (r.other || 0), 0);
+    p.months = new Set(d.income.map(r => r.month)).size;
+    p.cards = b.length;
+    p.info = []; p.warn = [];
+    if (!p.cards) p.info.push('มีเฉพาะเงินเดือน ไม่มีงบรายเดือน');
+    else if (p.cards < 12) p.info.push(`งบรายเดือน ${p.cards} เดือน`);
+    const offCount = b.reduce((a, x) => a + x.items.filter(i => i.offBudget).length, 0);
+    if (offCount) p.info.push(`${offCount} รายการไม่นับในงบ ตามสูตรใน sheet`);
+    if (b.some(x => x.income - x.items.filter(i => !i.offBudget).reduce((a, i) => a + i.amount, 0) < -1000)) p.warn.push('มีงบบางเดือนติดลบมาก');
+    if (primary[p.year] !== p) p.warn.push(`ปีซ้ำกับชีต ${primary[p.year].sheet}`);
+    p.exists = exists[p.year];
+    p.checked = !p.warn.length;
+  });
+
+  res.innerHTML = `<div class="card"><b>พบ ${parsed.length} ชีต</b><p class="muted" style="margin:2px 0 6px;font-size:.9rem">เลือกชีตที่ต้องการนำเข้า ชีตที่ปีซ้ำกันจะเลือกไว้ให้ชีตเดียว</p>
+    ${parsed.map((p, i) => p.ok ? `<label class="sheetrow"><input type="checkbox" data-i="${i}" ${p.checked ? 'checked' : ''}>
+      <span><span class="t">ชีต ${esc(p.sheet)}</span> <span class="muted">→ ปี ${p.year}</span>
+      <div class="d">เงินเดือน ${p.months} เดือน · งบ ${p.cards} เดือน · ได้จริงรวม <span class="num">${fmt(p.net)}</span></div>
+      ${p.exists ? '<span class="pill p-warn">มีข้อมูลปีนี้แล้ว จะถูกแทนที่</span>' : '<span class="pill p-ok">ปีใหม่</span>'}
+      ${p.info.map(w => `<span class="pill p-info">${esc(w)}</span>`).join('')}${p.warn.map(w => `<span class="pill p-bad">${esc(w)}</span>`).join('')}</span></label>`
+      : `<div class="sheetrow"><input type="checkbox" disabled><span><span class="t">ชีต ${esc(p.sheet)}</span><div class="d">อ่านไม่ได้: ${esc(p.reason)}</div></span></div>`).join('')}
+    <div id="dup"></div>
+    <button class="btn primary wide" id="go" style="margin-top:14px">นำเข้า</button>
+  </div>`;
+  const update = () => {
+    const sel = parsed.filter((p, i) => p.ok && res.querySelector(`[data-i="${i}"]`)?.checked);
+    const ys = sel.map(p => p.year), dup = ys.filter((y, i) => ys.indexOf(y) !== i);
+    document.getElementById('dup').innerHTML = dup.length ? `<div class="msg warn">เลือกปี ${[...new Set(dup)].join(', ')} มากกว่า 1 ชีต เลือกไว้ชีตเดียวต่อปี</div>` : '';
+    const go = document.getElementById('go');
+    go.disabled = !sel.length || dup.length > 0;
+    go.textContent = sel.length ? `นำเข้า ${sel.length} ชีต` : 'เลือกอย่างน้อย 1 ชีต';
+    return sel;
+  };
+  res.onchange = update; update();
+  document.getElementById('go').onclick = async () => {
+    const sel = update(); if (!sel.length) return;
+    const over = sel.filter(p => p.exists);
+    if (over.length && !confirm(`ข้อมูลปี ${over.map(p => p.year).join(', ')} ใน Firebase จะถูกแทนที่ด้วยข้อมูลจาก Excel ใช่ไหม`)) return;
+    const go = document.getElementById('go'); go.disabled = true; go.textContent = 'กำลังนำเข้า…';
+    try {
+      const batch = writeBatch(db);
+      sel.forEach(p => batch.set(doc(db, 'users', user.uid, 'years', 'y' + p.year), p.data));
+      await batch.commit();
+      res.insertAdjacentHTML('beforeend', `<div class="msg ok">นำเข้าปี ${sel.map(p => p.year).join(', ')} เรียบร้อยแล้ว <a href="index.html">เปิดสมุดเงินเดือน</a></div>`);
+      go.textContent = 'นำเข้าแล้ว';
+    } catch (e) {
+      res.insertAdjacentHTML('beforeend', `<div class="msg bad">นำเข้าไม่สำเร็จ (${esc(e.code || e.message)}) ตรวจสอบ Firestore rules ตามคู่มือ</div>`);
+      go.disabled = false; go.textContent = 'ลองอีกครั้ง';
+    }
+  };
+}
+</script>
+</body>
+</html>
